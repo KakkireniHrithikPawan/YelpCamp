@@ -6,12 +6,15 @@ const methodOverride = require('method-override')
 const morgan = require('morgan')
 const ExpressError = require('./utils/ExpressError')
 const Joi = require('joi')
-
 const session = require('express-session')
 const flash = require('connect-flash')
+const campgroundRoutes = require('./routers/campgrounds.js')
+const reviewRoutes = require('./routers/reviews.js')
+const userRoutes = require('./routers/users')
+const User = require('./models/user')
+const passport = require('passport')
+const LocalStrategy = require('passport-local')
 
-const campgrounds = require('./routers/campgrounds.js')
-const reviews = require('./routers/reviews.js')
 
 mongoose.connect('mongodb://localhost:27017/yelp-camp',{
     useNewUrlParser: true,
@@ -43,17 +46,31 @@ app.use(methodOverride('_method'))
 app.use(morgan('tiny'))
 app.use(session(sessionConfig))
 app.use(flash())
+app.use(passport.initialize())
+app.use(passport.session())
+passport.use(new LocalStrategy(User.authenticate()))
+
+passport.serializeUser(User.serializeUser())
+passport.deserializeUser(User.deserializeUser())
 
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.use((req, res, next) => {
     res.locals.success = req.flash('success')// we can have access to success in all templates
     res.locals.error = req.flash('error')
+    res.locals.currentUser = req.user
     next()
 })
 
-app.use('/campgrounds', campgrounds)
-app.use('/campgrounds/:id/reviews', reviews)
+app.get('/fakeUser', async (req, res) => {
+    const user = new User({email: 'hrithikkakkireni@gmail.com', username: 'hrithikpawan'})
+    const newUser = await User.register(user, 'chicken')
+    res.send(newUser)
+})
+
+app.use('/', userRoutes)
+app.use('/campgrounds', campgroundRoutes)
+app.use('/campgrounds/:id/reviews', reviewRoutes)
 
 app.get('/', (req, res) => {
     res.render('home');
