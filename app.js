@@ -1,3 +1,6 @@
+if(process.env.NODE_ENV !== "production"){
+    require('dotenv').config()
+}
 const express = require('express')
 const path = require('path')
 const mongoose = require('mongoose')
@@ -14,9 +17,13 @@ const userRoutes = require('./routers/users')
 const User = require('./models/user')
 const passport = require('passport')
 const LocalStrategy = require('passport-local')
+const mongoDBStore = require('connect-mongo')
+const { create } = require('connect-mongo')
 
+const dbUrl = process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp'
+const secret = process.env.SECRET || 'thisshouldbeabettersecret'
 
-mongoose.connect('mongodb://localhost:27017/yelp-camp',{
+mongoose.connect(dbUrl,{
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
@@ -29,7 +36,12 @@ db.once('open', () => {
 
 const app = express();
 const sessionConfig = {
-    secret: 'keyboard cat',
+    store: mongoDBStore.create({
+        mongoUrl: dbUrl,
+        touchAfter: 24 * 3600,
+        secret
+    }),
+    secret,
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -68,13 +80,14 @@ app.get('/fakeUser', async (req, res) => {
     res.send(newUser)
 })
 
+app.get('/', (req, res) => {
+    res.redirect('/campgrounds');
+});
+
 app.use('/', userRoutes)
 app.use('/campgrounds', campgroundRoutes)
 app.use('/campgrounds/:id/reviews', reviewRoutes)
 
-app.get('/', (req, res) => {
-    res.render('home');
-});
 
 app.all('*', (req, res, next) => {
     next(new ExpressError('Page Not Found', 404))
