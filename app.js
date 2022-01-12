@@ -20,7 +20,7 @@ const LocalStrategy = require('passport-local')
 const mongoDBStore = require('connect-mongo')
 const { create } = require('connect-mongo')
 
-const dbUrl = process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp'
+const dbUrl =  process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp'
 const secret = process.env.SECRET || 'thisshouldbeabettersecret'
 
 mongoose.connect(dbUrl,{
